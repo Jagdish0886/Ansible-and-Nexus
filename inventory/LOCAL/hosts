@@ -1,7 +1,0 @@
-[nexus]
-centos ansible_host=node1 ansible_user=ansadmin ansible_password=ansadmin  ansible_sudo_password=ansadmin ansible_become=true host_key_checking=False
-#ubuntu ansible_host=node2 ansible_user=ansadmin ansible_password=ansadmin  ansible_sudo_password=ansadmin ansible_become=true host_key_checking=False
-[tomcat]
-centos ansible_host=node1 ansible_user=ansadmin ansible_password=ansadmin  ansible_sudo_password=ansadmin ansible_become=true host_key_checking=False
-ubuntu ansible_host=node2 ansible_user=ansadmin ansible_password=ansadmin  ansible_sudo_password=ansadmin ansible_become=true host_key_checking=False
-
