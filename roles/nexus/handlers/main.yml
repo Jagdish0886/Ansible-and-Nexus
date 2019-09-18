@@ -1,0 +1,5 @@
+---
+- name: Check nexus service
+  uri:
+    uri: http://localhost:8081
+    status_code: 200

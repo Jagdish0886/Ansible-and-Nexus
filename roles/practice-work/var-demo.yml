@@ -1,0 +1,20 @@
+---
+- hosts: nexus
+  vars:
+   dict:
+    dict_key: this is dictionary value
+
+  tasks:
+   - name: Display dictionary value
+     debug: 
+       msg: "{{ dict }}"
+
+   - name: Display dictionary key  value
+     debug:
+       msg: "{{ dict.dict_key }}"
+
+   - name: Display dictionary key  value
+     debug:
+       msg: "{{ dict['dict_key'] }}"
+
+...

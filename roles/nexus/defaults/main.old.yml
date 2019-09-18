@@ -1,0 +1,67 @@
+---
+nexus_api_hostname: localhost
+nexus_api_scheme: http
+nexus_default_port: 8081
+nexus_default_admin_password: 'admin123'
+current_nexus_admin_password: 'admin1234'
+nexus_api_context_path: "{{ nexus_default_context_path }}"
+nexus_api_validate_certs: "{{ nexus_api_scheme == 'https' }}"
+nexus_default_context_path: '/'
+nexus_api_port: "{{ nexus_default_port }}"
+nexus_admin_password: 'admin1234'
+
+nexus_roles:
+  - id: Developers # can map to a LDAP group id, also used as a key to update a role
+    name: developers
+    description: All developers
+    privileges:
+      - nx-search-read
+   #   - all-repos-read
+    roles: [] # references to other role names
+                
+nexus_local_users:
+  - username: user1 # used as key to update
+    first_name: user1
+    last_name: CI
+    email: support@company.com
+    password: "user1"
+    roles:
+      - nx-admin # role ID
+
+nexus_privileges:
+  - name: all-repos-read  # used as key to update a privilege
+    description: 'Read & Browse access to all repos'
+    repository: '*'
+    actions:
+      - read
+      - browse
+
+nexus_delete_default_repos: false
+
+nexus_delete_default_blobstore: false
+
+#
+## Nexus blobstore config
+nexus_blob_split: false     # True - blobstores per format
+nexus_blob_names:           # Splited blob name list @ blob_vars.yml
+
+  pypi:
+    blob: 'default'
+  raw:
+    blob: 'default'
+  docker:
+    blob: 'default'
+  ruby:
+    blob: 'default'
+  bower:
+    blob: 'default'
+  npm:
+    blob: 'default'
+  nuget:
+    blob: 'default'
+  mvn:
+    blob: 'default'
+  gitlfs:
+    blob: 'default'
+  yum:
+    blob: 'default'

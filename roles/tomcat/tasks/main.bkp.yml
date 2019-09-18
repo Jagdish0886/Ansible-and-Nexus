@@ -1,0 +1,38 @@
+---
+# tasks file for tomcat
+#
+
+- name: Install apache on Ubuntu
+  apt:
+    name: apache2
+    state: installed
+  when: ansible_os_family == "Debian"  
+
+- name: Install apache on CentOS
+  yum: 
+    pkg: httpd
+    state: installed
+  when: ansible_os_family == "RedHat"
+
+- name: Copy index.html file
+  template:
+    src: index.html
+    dest: /var/www/html/index.html
+    mode: 0777
+
+- name: Copy systemd file to the /etc/systemd/system location
+  template:
+    src: tomcat.service
+    dest: /etc/systemd/system/tomcat.service
+  when: ansible_distribution == "Ubuntu"
+
+- name: Copy systemd file to the /etc/systemd/system location
+  template:
+    src: tomcat.service
+    dest: /etc/systemd/system/tomcat.service
+  when: ansible_distribution == "CentOS"
+
+- name: start tomcat
+  systemd:
+    name: tomcat.service
+    state: restarted

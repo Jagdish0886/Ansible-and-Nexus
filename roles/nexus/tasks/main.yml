@@ -1,0 +1,15 @@
+---
+- import_tasks: nexus_install.yml
+
+- block:
+
+    - name: Apply defaults to repositories configurations and process a single list
+      include_tasks: process_repos_list.yml
+
+    - name: Create configured repositories
+      include_tasks: call_script.yml
+      vars:
+        script_name: create_repos_from_list
+        args: "{{ _nexus_repos_global_list }}"
+
+  when: nexus_run_provisionning | default(true) | bool

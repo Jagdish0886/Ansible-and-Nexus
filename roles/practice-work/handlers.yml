@@ -1,0 +1,18 @@
+---
+- hosts: nexus
+  gather_facts: false
+  
+  vars:
+    motd: "Welcome to the world of ansible"
+      
+  tasks:
+    - name: Set the message
+      debug:
+        msg: "{{ motd }}"
+      notify: MOTD changed
+
+  handlers: 
+    - name: MOTD changed
+      debug: 
+        msg: The motd has changed
+...

@@ -1,0 +1,203 @@
+---
+  - name: install wget
+    yum: 
+      pkg: 'wget' 
+      state: installed
+    tags: Java-installation-step
+
+  - name: install jdk 8
+    yum: 
+      pkg: 'java-1.8.0-openjdk' 
+      state: installed
+    tags: Java-installation-step
+
+  - name: create "nexus" group
+    group: 
+      name: nexus 
+    tags: User-management-step
+
+  - name: create "nexus" user
+    user: 
+      name: nexus 
+      group: nexus 
+    tags: User-management-step
+
+  - name: download nexus
+    get_url: 
+      url: "{{nexus_download_url}}"
+      dest: "{{nexus_download_dest}}"
+    tags: Software-download-step
+
+  - name: create {{nexus_extracted_dir}} directory
+    file: 
+      path: "{{nexus_extracted_dir}}"
+      state: directory
+    tags: Software-download-step
+
+  - name: extract nexus to {{nexus_extracted_dir}}
+    command: tar xzf {{nexus_download_dest}} -C {{nexus_extracted_dir}} --strip-components=1
+    tags: Software-download-step
+
+  - name: move nexus to {{nexus_dir}} directory
+    command: cp -a "{{nexus_extracted_dir}}/." "{{nexus_dir}}"
+    tags: Software-download-step
+ 
+ # - name: remove {{nexus_extracted_dir}} directory
+ #   file: 
+ #     path: "{{nexus_extracted_dir}}"
+ #     state: absent
+ #   tags: Software-download-step
+
+  - name: make {{nexus_dir}} directory property of "nexus" user/group
+    file: 
+      path: "{{nexus_dir}}"
+      group: nexus 
+      owner: nexus 
+      recurse: true
+    tags: User-management-step
+
+  - name: make {{nexus_dir}}/sonatype-work directory property of "nexus" user/group
+    file: 
+      path: "{{nexus_dir}}/sonatype-work"
+      group: nexus 
+      owner: nexus 
+      recurse: true
+    tags: User-management-step
+
+  - name: make nexus runned by "nexus" user
+    become: nexus
+    lineinfile: 
+      dest: "{{nexus_dir}}/bin/nexus"
+      regexp: "#run_as_user" 
+      line: "run_as_user=nexus"
+      backrefs: true
+    tags: User-management-step
+
+  - name: set NEXUS_HOME
+    lineinfile: 
+      dest: "{{nexus_dir}}/bin/nexus" 
+      regexp: "^NEXUS_HOME" 
+      line: "NEXUS_HOME={{nexus_dir}}" 
+    tags: Housekeeping-step
+
+  - name: Copy systemd file to the /etc/systemd/system location
+    template:
+      src: nexus.service
+      dest: /etc/systemd/system/nexus.service
+    tags: Housekeeping-step
+ 
+  - name: start nexus
+    systemd: 
+      name: nexus.service
+      state: started
+      enabled: yes
+    tags: Service-restart
+
+  - name: wait for service to be UP
+    wait_for:
+      port: 8081
+     # delay: 70
+      timeout: 300
+    notify: Check nexus service 
+    tags: Service-validation
+  
+  - name: Get rest API endpoint (v < 3.8.0)
+    set_fact:
+      nexus_rest_api_endpoint: "service/siesta/rest/v1/script"
+    when: nexus_version is version_compare('3.8.0', '<')
+    tags: api_call
+
+  - name: Get rest API endpoint (v >= 3.8.0)
+    set_fact:
+      nexus_rest_api_endpoint: "service/rest/v1/script"
+    when: nexus_version is version_compare('3.8.0', '>=')
+    tags: api_call
+
+  - name: Change admin password if we are still using default
+    block:
+      - include_tasks: call_script.yml
+        vars:
+          script_name: update_admin_password
+          args:
+            new_password: "{{ current_nexus_admin_password }}"
+        when: current_nexus_admin_password == "{{ nexus_default_admin_password }}"
+
+#  - name: Create/check roles
+#    include_tasks: call_script.yml
+#    vars:
+#      script_name: setup_roles_from_list
+#      args: "{{ nexus_roles }}"
+#    when: nexus_roles | length > 0
+
+  - name: Create/check local users
+    include_tasks: call_script.yml
+    vars:
+      script_name: setup_users_from_list
+      args: "{{ nexus_local_users }}"
+    when: nexus_local_users | length > 0
+    tags: user_management_step
+
+ # - name: Create/check privileges
+ #   include_tasks: call_script.yml
+ #   vars:
+ #     script_name: setup_privileges_from_list
+ #     args: "{{ nexus_privileges }}"
+ #   when: nexus_privileges | length > 0
+ #   tags: user_management_step
+
+#  - include: declare_script_each.yml
+#    with_items:
+  #   - setup_users_from_list    
+   #  - setup_roles_from_list
+   #  - update_admin_password 
+   #  - create_repos_from_list
+ #   tags: file_upload 
+ 
+  - name: Access scripts API endpoint with defined admin password
+    uri:
+      url: "{{ nexus_api_scheme }}://{{ nexus_api_hostname }}:{{ nexus_api_port }}\
+        {{ nexus_api_context_path }}{{ nexus_rest_api_endpoint }}"
+      method: 'HEAD'
+      user: 'admin'
+      password: "{{ nexus_admin_password }}"
+      force_basic_auth: yes
+      status_code: 200, 401
+      validate_certs: "{{ nexus_api_validate_certs }}"
+    register: nexus_api_head_with_defined_password
+    check_mode: no
+    tags: api_call
+
+  - name: Access scripts API endpoint with default admin password
+    uri:
+      url: "{{ nexus_api_scheme }}://{{ nexus_api_hostname }}:{{ nexus_api_port }}\
+        {{ nexus_api_context_path }}{{ nexus_rest_api_endpoint }}"
+      method: 'HEAD'
+      user: 'admin'
+      password: "{{ nexus_default_admin_password }}"
+      force_basic_auth: yes
+      status_code: 200, 401
+      validate_certs: "{{ nexus_api_validate_certs }}"
+    register: nexus_api_head_with_default_password
+    when: nexus_api_head_with_defined_password.status == 401
+    tags: api_call 
+  
+  - name: prints API value
+    debug:
+      msg: "{{ nexus_api_scheme }}://{{ nexus_api_hostname }}:{{ nexus_api_port }}\
+        {{ nexus_api_context_path }}{{ nexus_rest_api_endpoint }}"
+    tags: api_call
+
+  - name: Register defined admin password for next operations
+    set_fact:
+      current_nexus_admin_password: "{{ nexus_admin_password }}"
+    when: nexus_api_head_with_defined_password.status == 200
+    no_log: true
+    tags: api_call
+
+  - name: Register default admin password for next operations
+    set_fact:
+      current_nexus_admin_password: "{{ nexus_default_admin_password }}"
+    when: (nexus_api_head_with_default_password.status | default(false)) == 200
+    tags: api_call
+...
+

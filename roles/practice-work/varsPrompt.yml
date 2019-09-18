@@ -1,0 +1,21 @@
+---
+- hosts: nexus
+
+  vars_prompt:
+  - name: firstname
+    private: false
+  - name: surname
+    private: false
+  - name: password
+    private: true 
+
+
+  tasks:
+  - name: Input name display
+    debug:
+      msg: "My user name is: {{ firstname }} {{ surname }}"
+
+  - name: Password display
+    debug:
+      msg: "My password is: {{ password }}"
+...

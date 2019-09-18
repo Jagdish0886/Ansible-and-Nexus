@@ -1,0 +1,21 @@
+---
+- hosts: nexus
+  vars:
+   myList:
+      - job1
+      - job2
+      - job3
+  tasks:
+   - name: Display dictionary value
+     debug: 
+       msg: "{{ myList[0] }}"
+
+   - name: Display dictionary key  value
+     debug:
+       msg: "{{ myList[1] }}"
+
+   - name: Display dictionary key  value
+     debug:
+       msg: "{{ myList[2] }}"
+
+...

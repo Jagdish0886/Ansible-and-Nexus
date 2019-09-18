@@ -1,0 +1,9 @@
+---
+- hosts: nexus
+  gather_facts: true
+
+  tasks:
+    - name: Tells the port used on the server for ansible
+      debug:
+        msg: "{{ hostvars[ansible_hostname].ansible_port | default('22') }}"
+...
